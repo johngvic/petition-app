@@ -4,6 +4,10 @@ module.exports = {
   getPetitions: (app) => {
     app.get('/api/petitions', Petition.getPetitions);
   },
+
+  getPetitionById: (app) => {
+    app.get('/api/petitions/:id', Petition.getPetitionById);
+  },
   
   addPetition: (app) => {
     app.post('/api/petitions', Petition.addPetition);

@@ -1,8 +1,9 @@
 const client = require('../../config/dbConnection');
+const { ObjectId } = require('mongodb');
 
 module.exports = class PetitionModel {
   static async getPetitions() {
-    const cursor = await client
+    const cursor = client
     .db('petition')
     .collection('petitions')
     .find();
@@ -12,22 +13,21 @@ module.exports = class PetitionModel {
     return petitions;
   }
 
+  static async getPetitionById(id) {
+    const petition = await client
+    .db('petition')
+    .collection('petitions')
+    .findOne({ _id: ObjectId(id) });
+
+    return petition;
+  }
+
   static async addPetition(data) {
-    const petitions = await this.getPetitions();
-
     try {
-      const newPetition = {
-        id: petitions[petitions.length - 1].id + 1,
-        name: data.name,
-        director: data.director,
-        link: data.link,
-        date: new Date()
-      }
-
       const response = await client
       .db('petition')
       .collection('petitions')
-      .insertOne(newPetition);
+      .insertOne(data);
       
       return response;
     } catch (error) {
@@ -37,19 +37,12 @@ module.exports = class PetitionModel {
 
   static async updatePetition(data, id) {
     try {
-      const updatedPetition = {
-        name: data.name,
-        director: data.director,
-        link: data.link,
-        date: new Date()
-      }
-
       const update = await client
       .db('petition')
       .collection('petitions')
       .updateOne(
-        { id: parseInt(id) },
-        { $set: updatedPetition }
+        { _id: ObjectId(id) },
+        { $set: data }
       )
         
       return update;
@@ -64,7 +57,7 @@ module.exports = class PetitionModel {
       .db('petition')
       .collection('petitions')
       .deleteOne(
-        { id: parseInt(id) }
+        { _id: ObjectId(id) }
       )
 
       return deletePetition;
