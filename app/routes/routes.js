@@ -1,19 +1,19 @@
 const Petition = require("../controllers/PetitionController");
 
 module.exports = {
-  getPetition: (app) => {
-    app.get('/api/petition', Petition.getPetitions);
+  getPetitions: (app) => {
+    app.get('/api/petitions', Petition.getPetitions);
   },
   
   addPetition: (app) => {
-    app.post('/api/petition', Petition.addPetition);
+    app.post('/api/petitions', Petition.addPetition);
   },
 
   updatePetition: (app) => {
-    app.put('/api/petition/:id', Petition.updatePetition);
+    app.put('/api/petitions/:id', Petition.updatePetition);
   },
 
   deletePetition: (app) => {
-    app.delete('/api/petition/:id', Petition.deletePetition);
+    app.delete('/api/petitions/:id', Petition.deletePetition);
   }
 }
