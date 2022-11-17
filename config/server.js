@@ -11,7 +11,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(body_parser.urlencoded({ extended:true }));
 
-app.listen(port, function () {
+app.listen(port, () => {
 	console.log('Running on', port);
 });
 
