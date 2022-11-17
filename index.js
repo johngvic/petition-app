@@ -7,3 +7,8 @@ routes.getPetitionById(app);
 routes.addPetition(app);
 routes.updatePetition(app);
 routes.deletePetition(app);
+routes.signPetition(app);
+routes.unsignPetition(app);
+
+routes.register(app);
+routes.auth(app);

@@ -1,4 +1,6 @@
-const Petition = require("../controllers/PetitionController");
+const Petition = require('../controllers/PetitionController');
+const User = require('../controllers/UserController');
+const auth = require('../../config/auth');
 
 module.exports = {
   getPetitions: (app) => {
@@ -19,5 +21,21 @@ module.exports = {
 
   deletePetition: (app) => {
     app.delete('/api/petitions/:id', Petition.deletePetition);
+  },
+
+  signPetition: (app) => {
+    app.post('/api/petitions/:id/sign', Petition.signPetition);
+  },
+
+  unsignPetition: (app) => {
+    app.post('/api/petitions/:id/unsign', Petition.unsignPetition);
+  },
+
+  register: (app) => {
+    app.post('/api/register', User.register);
+  },
+
+  auth: (app) => {
+    app.post('/api/auth', User.auth);
   }
 }

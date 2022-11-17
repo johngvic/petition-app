@@ -1,5 +1,7 @@
 const PetitionModel = require('../models/PetitionModel');
 const Joi = require('joi');
+const auth = require('../../config/auth');
+const { ObjectId } = require('mongodb');
 
 module.exports = class PetitionController {
   static async getPetitions(req, res, next) {
@@ -15,58 +17,90 @@ module.exports = class PetitionController {
   static async getPetitionById(req, res, next) {
     try {
       const id = req.params.id;
-      if (id.length !== 24) res.status(400).json('Invalid argument for ID')
+      if (id.length !== 24) {
+        return res.status(400).json({ error: 'Invalid argument for ID' })
+      }
       
       const petition = await PetitionModel.getPetitionById(id);
-      if (!petition) res.status(404).json('Petition not found')
+      if (!petition) {
+        return res.status(404).json({ error: 'Petition not found' })
+      }
 
-      res.status(200).json(petition);
+      return res.status(200).json(petition);
     } catch (error) {
       res.status(500).json({ error })
     }
   }
 
   static async addPetition(req, res, next) {
+    const tokenValidation = auth(req, res, next)
+    if (tokenValidation) return tokenValidation;
+
+    const userId = req.userId.id;
+
     const schema = Joi.object({
       title: Joi.string().min(3).max(50).required(),
       description: Joi.string().min(3).max(150).required(),
     })
 
     const result = schema.validate(req.body)
-    if (result.error) return res.status(400).send(result.error.details[0].message)
+    if (result.error) {
+      return res.status(400).send({ error: result.error.details[0].message });
+    }
 
     const petition = {
-      user: 'any',
-      title: req.body.title,
-      description: req.body.description,
+      ...req.body,
+      user: ObjectId(userId),
       signatures: [],
       createdAt: new Date()
     }
 
     try {
-      const response = await PetitionModel.addPetition(petition)
+      await PetitionModel.addPetition(petition);
 
-      res.status(200).json(response)
+      return res.status(201).json({
+        success: 'Petition was successfully added',
+        payload: petition
+      })
     } catch (error) {
-      res.status(500).json({ error })
+      res.status(500).json({ error: error.message });
     }
   }
 
   static async updatePetition(req, res, next) {
+    const tokenValidation = auth(req, res, next)
+    if (tokenValidation) return tokenValidation;
+
+    const userId = req.userId.id;
+    const petitionId = req.params.id;
+
     const schema = Joi.object({
       title: Joi.string().min(3).max(50),
       description: Joi.string().min(3).max(150),
     })
 
-    const result = schema.validate(req.body)
-    if (result.error) return res.status(400).send(result.error.details[0].message)
+    const result = schema.validate(req.body);
+    if (result.error) {
+      return res.status(400).send({ error: result.error.details[0].message });
+    }
+
+    if (Object.keys(req.body).length === 0) {
+      return res.status(400).send({ error: 'At least one attribute must be provided' });
+    }
+
+    if (petitionId.length !== 24) {
+      return res.status(400).json({ error: 'Invalid argument for ID' });
+    }
 
     try {
-      const id = req.params.id;
-      if (id.length !== 24) res.status(400).json('Invalid argument for ID');
+      const oldPetition = await PetitionModel.getPetitionById(petitionId);
+      if (!oldPetition) {
+        return res.status(404).json({ error: 'Petition not found' });
+      }
 
-      const oldPetition = await PetitionModel.getPetitionById(id);
-      if (!oldPetition) res.status(404).json('Petition not found');
+      if (oldPetition.user.valueOf() != userId) {
+        return res.status(401).json({ error: 'You should be the petition\'s owner to edit it' });
+      }
 
       const petition = {
         title: req.body.title ? req.body.title : oldPetition.title,
@@ -75,25 +109,125 @@ module.exports = class PetitionController {
         createdAt: oldPetition.createdAt
       }
 
-      const response = await PetitionModel.updatePetition(petition, id)
+      await PetitionModel.updatePetition(petition, petitionId);
 
-      res.status(200).json(response)
+      return res.status(200).json({
+        success: 'Petition was successfully edited',
+        payload: petition
+      })
     } catch (error) {
-      res.status(500).json({ error })
+      return res.status(500).json({ error: error.message })
     }
   }
 
   static async deletePetition(req, res, next) {
-    try {
-      const id = req.params.id;
-      const response = await PetitionModel.deletePetition(id)
+    const tokenValidation = auth(req, res, next)
+    if (tokenValidation) return tokenValidation;
 
-      if (id.length !== 24) res.status(400).json('Invalid argument for ID')
-      if (response.deletedCount === 0) res.status(404).json('Petition not found')
+    const userId = req.userId.id;
+    const petitionId = req.params.id;
 
-      res.status(200).json(response)
+    if (petitionId.length !== 24) {
+      return res.status(400).json({ error: 'Invalid argument for ID' })
+    }
+
+    try { 
+      const petition = await PetitionModel.getPetitionById(petitionId);
+      
+      if (!petition) {
+        return res.status(404).json({ error: 'Petition not found' })
+      }
+
+      if (petition.user.valueOf() != userId) {
+        return res.status(401).json({ error: 'You should be the petition\'s owner to delete it' })
+      }
+      
+      await PetitionModel.deletePetition(petitionId)
+
+      res.status(200).json({ success: 'Petition was successfully deleted' })
     } catch (error) {
-      res.status(500).json({ error })
+      res.status(500).json({ error: error.message })
+    }
+  }
+
+  static async signPetition(req, res, next) {
+    const tokenValidation = auth(req, res, next)
+    if (tokenValidation) return tokenValidation;
+
+    const userId = req.userId.id;
+    const petitionId = req.params.id;
+
+    if (petitionId.length !== 24) {
+      return res.status(400).json({ error: 'Invalid argument for ID' });
+    }
+
+    try {
+      const oldPetition = await PetitionModel.getPetitionById(petitionId);
+      if (!oldPetition) {
+        return res.status(404).json({ error: 'Petition not found' });
+      }
+
+      if (oldPetition.user.valueOf() == userId) {
+        return res.status(400).json({ error: 'You cannot sign your own petition' });
+      }
+
+      let isAlreadySigned = false;
+      oldPetition.signatures.forEach((signature) => {
+        if (signature == userId) {
+          isAlreadySigned = true;
+        }
+      })
+
+      if (isAlreadySigned) {
+        return res.status(400).json({ error: 'You\'ve already signed this petition' });
+      }
+
+      const updatedSignatures = [...oldPetition.signatures, userId];
+
+      const petition = {
+        signatures: updatedSignatures,
+      }
+
+      await PetitionModel.updatePetition(petition, petitionId);
+
+      return res.status(200).json({ success: 'Petition was successfully signed' })
+    } catch (error) {
+      return res.status(500).json({ error: error.message })
+    }
+  }
+
+  static async unsignPetition(req, res, next) {
+    const tokenValidation = auth(req, res, next)
+    if (tokenValidation) return tokenValidation;
+
+    const userId = req.userId.id;
+    const petitionId = req.params.id;
+
+    if (petitionId.length !== 24) {
+      return res.status(400).json({ error: 'Invalid argument for ID' });
+    }
+
+    try {
+      const oldPetition = await PetitionModel.getPetitionById(petitionId);
+      if (!oldPetition) {
+        return res.status(404).json({ error: 'Petition not found' });
+      }
+
+      const signatureIndex = oldPetition.signatures.findIndex((signature) => signature == userId);
+      if (signatureIndex === -1) {
+        return res.status(400).json({ error: 'You haven\'t signed this petition yet' });
+      }
+
+      const signaturesFiltered = oldPetition.signatures.filter((signature) => signature != userId);
+      const petition = {
+        signatures: signaturesFiltered,
+      }
+
+      await PetitionModel.updatePetition(petition, petitionId);
+
+      return res.status(200).json({ success: 'Petition was successfully unsigned' })
+    } catch (error) {
+      return res.status(500).json({ error: error.message })
     }
   }
 }

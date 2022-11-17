@@ -1,7 +1,76 @@
 # API de Petição
 API para criar, editar, listar e deletar petições. Também será possível assinar uma determinada petição existente.
 
-## Documentação
+## Criação e autenticação
+
+#### Registro de usuário
+```http
+POST /api/register
+```
+| Propriedade   | Tipo       | Descrição                                   |
+| :---------- | :--------- | :------------------------------------------ |
+| `name`      | `string` | Nome |
+| `email`      | `string` | Email |
+| `password`      | `string` | Senha |
+
+##### Input
+```http
+  {
+    "name": "John Doe",
+    "email": "johndoe@email.com",
+    "password": "any-pass"
+  }
+```
+
+##### Output
+```http
+  {
+    "insertedUser": {
+      "_id": "79358c84-a265-414d-8d70-7544315741d6",
+      "name": "John Doe",
+      "email": "johndoe@email.com"
+    },
+    "token": "ANY-TOKEN"
+  }
+```
+
+&nbsp;
+#### Autenticação de usuário
+```http
+POST /api/auth
+```
+| Propriedade   | Tipo       | Descrição                                   |
+| :---------- | :--------- | :------------------------------------------ |
+| `email`      | `string` | Email |
+| `password`      | `string` | Senha |
+
+##### Input
+```http
+  {
+    "email": "johndoe@email.com",
+    "password": "any-pass"
+  }
+```
+
+##### Output
+```http
+  {
+    "user": {
+      "_id": "79358c84-a265-414d-8d70-7544315741d6",
+      "name": "John Doe",
+      "email": "johndoe@email.com"
+    },
+    "token": "ANY-TOKEN"
+  }
+```
+
+&nbsp;
+## Documentação geral
+
+**Obs:** Os endpoints que possuem o símbolo :closed_lock_with_key: só podem ser invocados estando o usuário autenticado. Sendo assim,
+insira no header da sua requisição o token que você gerou da seguinte forma: ```Authorization: Bearer [seu token] ```
+&nbsp;
+
 #### Retorna todas as petições
 ```http
 GET /api/petitions
@@ -17,7 +86,7 @@ GET /api/petitions/:id
 | `id`      | `string` | ID da petição que você quer |
 
 &nbsp;
-#### Cria uma petição
+#### Cria uma petição :closed_lock_with_key:
 ```http
 POST /api/petitions
 ```
@@ -45,7 +114,7 @@ POST /api/petitions
   }
 ```
 &nbsp;
-#### Edita uma petição
+#### Edita uma petição :closed_lock_with_key:
 ```http
 PUT /api/petitions/:id
 ```
@@ -65,7 +134,7 @@ PUT /api/petitions/:id
   }
 ```
 &nbsp;
-#### Deleta uma petição
+#### Deleta uma petição :closed_lock_with_key:
 ```http
 DELETE /api/petitions/:id
 ```
@@ -74,12 +143,21 @@ DELETE /api/petitions/:id
 | `id`      | `string` | ID da petição que você quer deletar |
 
 &nbsp;
-#### Assina uma petição
+#### Assina uma petição :closed_lock_with_key:
 ```http
 POST /api/petitions/:id/sign
 ```
 | Parâmetro   | Tipo       | Descrição                                   |
 | :---------- | :--------- | :------------------------------------------ |
 | `id`      | `string` | ID da petição que você quer assinar |
+
+&nbsp;
+#### Retira a assinatura de uma petição :closed_lock_with_key:
+```http
+POST /api/petitions/:id/unsign
+```
+| Parâmetro   | Tipo       | Descrição                                   |
+| :---------- | :--------- | :------------------------------------------ |
+| `id`      | `string` | ID da petição que você quer remover sua assinatura |
 
 &nbsp;
