@@ -9,6 +9,7 @@ routes.updatePetition(app);
 routes.deletePetition(app);
 routes.signPetition(app);
 routes.unsignPetition(app);
+routes.target(app);
 
 routes.register(app);
 routes.auth(app);
