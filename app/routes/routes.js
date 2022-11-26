@@ -30,6 +30,10 @@ module.exports = {
     app.post('/api/petitions/:id/unsign', Petition.unsignPetition);
   },
 
+  target: (app) => {
+    app.get('/api/petitions/:id/target', Petition.target);
+  },
+
   register: (app) => {
     app.post('/api/register', User.register);
   },

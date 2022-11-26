@@ -33,7 +33,7 @@ module.exports = class PetitionController {
   }
 
   static async addPetition(req, res, next) {
-    const tokenValidation = auth(req, res, next)
+    const tokenValidation = auth(req, res, next);
     if (tokenValidation) return tokenValidation;
 
     const userId = req.userId.id;
@@ -41,11 +41,17 @@ module.exports = class PetitionController {
     const schema = Joi.object({
       title: Joi.string().min(3).max(50).required(),
       description: Joi.string().min(3).max(150).required(),
+      target: Joi.number().min(10).max(5000000).required(),
     })
 
-    const result = schema.validate(req.body)
+    const result = schema.validate(req.body);
     if (result.error) {
-      return res.status(400).send({ error: result.error.details[0].message });
+      const error = result.error.details[0].message;
+      const missingField = error.split('\"');
+
+      return res.status(400).send({
+        error: `Missing property ${missingField[1].toUpperCase()}`
+      });
     }
 
     const petition = {
@@ -77,6 +83,7 @@ module.exports = class PetitionController {
     const schema = Joi.object({
       title: Joi.string().min(3).max(50),
       description: Joi.string().min(3).max(150),
+      target: Joi.number().min(10).max(5000000),
     })
 
     const result = schema.validate(req.body);
@@ -105,6 +112,7 @@ module.exports = class PetitionController {
       const petition = {
         title: req.body.title ? req.body.title : oldPetition.title,
         description: req.body.description ? req.body.description : oldPetition.description,
+        target: req.body.target ? req.body.target : oldPetition.target,
         signatures: oldPetition.signatures,
         createdAt: oldPetition.createdAt
       }
@@ -228,6 +236,32 @@ module.exports = class PetitionController {
       return res.status(200).json({ success: 'Petition was successfully unsigned' })
     } catch (error) {
       return res.status(500).json({ error: error.message })
+    }
+  }
+
+  static async target(req, res, next) {
+    try {
+      const id = req.params.id;
+      if (id.length !== 24) {
+        return res.status(400).json({ error: 'Invalid argument for ID' })
+      }
+      
+      const petition = await PetitionModel.getPetitionById(id);
+      if (!petition) {
+        return res.status(404).json({ error: 'Petition not found' })
+      }
+
+      const totalSignatures = petition.signatures.length;
+      const target = petition.target;
+      const missingSignatures = target - totalSignatures;
+
+      return res.status(200).json(
+        missingSignatures !== 0 ?
+        { message: `It lacks ${missingSignatures} signature to this petition beat the goal!` } :
+        { message: `This petition have already beaten the goal! :)` }
+      );
+    } catch (error) {
+      res.status(500).json({ error })
     }
   }
 }
