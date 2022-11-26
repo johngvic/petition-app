@@ -1,6 +1,5 @@
 const Petition = require('../controllers/PetitionController');
 const User = require('../controllers/UserController');
-const auth = require('../../config/auth');
 
 module.exports = {
   getPetitions: (app) => {
