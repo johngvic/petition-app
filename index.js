@@ -13,3 +13,5 @@ routes.target(app);
 
 routes.register(app);
 routes.auth(app);
+
+module.exports = app
